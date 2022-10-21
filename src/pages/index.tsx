@@ -5,10 +5,10 @@ import Head from "next/head";
 import useBattleStore from "../state";
 
 const Home: NextPage = () => {
-    const { left, right, animate } = useBattleStore();
+    const { left, right, start } = useBattleStore();
 
     const handleClick = () => {
-        animate();
+        start();
     };
 
     return (

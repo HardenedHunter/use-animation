@@ -36,7 +36,7 @@ type CharacterModel = {
 type BattleStore = {
     left: CharacterModel;
     right: CharacterModel;
-    animate: VoidFunction;
+    start: VoidFunction;
 };
 
 const iterateAnimation = (
@@ -130,7 +130,7 @@ const useBattleStore = create<BattleStore>((set, get) => ({
                 config
             ),
     },
-    animate: () => {
+    start: () => {
         const { left, right } = get();
 
         left.playAnimation({
