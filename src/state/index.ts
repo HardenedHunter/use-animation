@@ -15,6 +15,7 @@ const animations = {
   charge: buildSpriteArray(15, 19),
   attack: buildSpriteArray(20, 28),
   death: buildSpriteArray(29, 43),
+  resurrect: buildSpriteArray(29, 43).reverse(),
 };
 
 type AnimationConfig = {
@@ -27,8 +28,8 @@ type CharacterModel = {
   sprite: string;
   playAnimation: (config: AnimationConfig) => void;
   animation?: {
-    index: number;
-    intervalId: NodeJS.Timer;
+    nextIndex: number;
+    timeoutId?: NodeJS.Timer;
   };
 };
 
@@ -51,28 +52,42 @@ const iterateAnimation = (
     return;
   }
 
-  const isLastSprite = latestAnimation.index === sprites.length - 1;
+  const sprite = sprites[latestAnimation.nextIndex] as string;
+  const nextIndex = (latestAnimation.nextIndex + 1) % sprites.length;
+
+  const newCharacterData = {
+    ...latestCharacterData,
+    sprite,
+    animation: { nextIndex },
+  };
+
+  setCharacter(newCharacterData);
+
+  const isLastSprite = latestAnimation.nextIndex === sprites.length - 1;
 
   if (isLastSprite) {
     if (next) {
-      playAnimationInner(getCharacter, setCharacter, next);
+      setTimeout(
+        () => playAnimationInner(getCharacter, setCharacter, next),
+        100
+      );
+
       return;
     }
 
     if (!repeat) {
-      clearInterval(latestAnimation.intervalId);
       return;
     }
   }
 
-  const index = (latestAnimation.index + 1) % sprites.length;
-  const sprite = sprites[index] as string;
-  console.log(sprite);
+  const timeoutId = setTimeout(
+    () => iterateAnimation(getCharacter, setCharacter, config),
+    100
+  );
 
   setCharacter({
-    ...latestCharacterData,
-    sprite,
-    animation: { ...latestAnimation, index },
+    ...newCharacterData,
+    animation: { nextIndex, timeoutId },
   });
 };
 
@@ -84,19 +99,16 @@ const playAnimationInner = (
   const character = getCharacter();
   const { animation } = character;
 
-  if (animation) {
-    clearInterval(animation.intervalId);
+  if (animation && animation.timeoutId) {
+    clearTimeout(animation.timeoutId);
   }
-
-  const newIntervalId = setInterval(
-    () => iterateAnimation(getCharacter, setCharacter, config),
-    100
-  );
 
   setCharacter({
     ...character,
-    animation: { ...animation, intervalId: newIntervalId, index: -1 },
+    animation: { nextIndex: 0 },
   });
+
+  iterateAnimation(getCharacter, setCharacter, config);
 };
 
 const useBattleStore = create<BattleStore>((set, get) => ({
@@ -123,10 +135,21 @@ const useBattleStore = create<BattleStore>((set, get) => ({
 
     left.playAnimation({
       sprites: animations.attack,
-      next: { sprites: animations.idle },
+      next: { sprites: animations.idle, repeat: true },
     });
 
-    // right.playAnimation({ sprites: animations.death });
+    const death: AnimationConfig = {
+      sprites: animations.death,
+    };
+
+    const resurrect: AnimationConfig = {
+      sprites: animations.resurrect,
+      next: death,
+    };
+
+    death.next = resurrect;
+
+    right.playAnimation(death);
   },
 }));
 
