@@ -1,14 +1,29 @@
+import { useState } from "react";
 import type { NextPage } from "next";
 import Image from "next/future/image";
 import Head from "next/head";
 
-import useBattleStore from "../state";
+import useAnimation from "../hooks/useAnimation";
+
+import { animations } from "../utils";
 
 const Home: NextPage = () => {
-    const { left, right, start } = useBattleStore();
+    const [sprite, setSprite] = useState("witch/witch1.svg");
+    const animate = useAnimation();
 
     const handleClick = () => {
-        start();
+        animate({
+            delay: 100,
+            onSpriteChange: setSprite,
+            options: {
+                sprites: animations.idle,
+                // repeat: -1,
+                next: {
+                    sprites: animations.attack,
+                    next: { sprites: animations.idle, repeat: 1 },
+                },
+            },
+        });
     };
 
     return (
@@ -29,7 +44,7 @@ const Home: NextPage = () => {
                 <div className="grid w-full max-w-2xl grid-cols-battle">
                     <div className="relative aspect-square">
                         <Image
-                            src={`/images/${left.sprite}`}
+                            src={`/images/${sprite}`}
                             fill
                             alt="Character"
                             sizes="50vh"
@@ -37,12 +52,12 @@ const Home: NextPage = () => {
                     </div>
                     <div></div>
                     <div className="relative aspect-square -scale-x-100">
-                        <Image
+                        {/* <Image
                             src={`/images/${right.sprite}`}
                             fill
                             alt="Character"
                             sizes="50vh"
-                        />
+                        /> */}
                     </div>
                 </div>
             </main>
