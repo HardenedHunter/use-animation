@@ -15,12 +15,12 @@ const Home: NextPage = () => {
         animate({
             delay: 100,
             onSpriteChange: setSprite,
-            options: {
+            config: {
                 sprites: animations.idle,
-                // repeat: -1,
+                repeat: 3,
                 next: {
                     sprites: animations.attack,
-                    next: { sprites: animations.idle, repeat: 1 },
+                    next: { sprites: animations.idle, repeat: 3 },
                 },
             },
         });

@@ -2,9 +2,23 @@ import { useCallback, useEffect, useState, useRef } from "react";
 
 import { Sprites } from "../utils";
 
-type AnimationState = {
-    index: number;
-    timeoutId?: NodeJS.Timer;
+type AnimationConfig = {
+    sprites: Sprites;
+    /**
+     * Animation repeat count. Should be a positive integer or -1 (infinite repeat), default value is 1
+     */
+    repeat?: number;
+    next?: AnimationConfig;
+};
+
+type AnimationIterationConfig = AnimationConfig & {
+    repeat: number;
+};
+
+type AnimationParams = {
+    delay: number;
+    onSpriteChange?: (sprite: string) => void;
+    config: AnimationConfig;
 };
 
 type AnimationChangeHandler = (payload: {
@@ -13,41 +27,62 @@ type AnimationChangeHandler = (payload: {
     timeoutId?: NodeJS.Timer;
 }) => void;
 
+type AnimationState = {
+    index: number;
+    timeoutId?: NodeJS.Timer;
+};
+
 const initialState: AnimationState = { index: 0 };
 
 const iterateAnimation = (
     index: number,
-    options: AnimationOptions,
+    config: AnimationIterationConfig,
     delay: number,
     onChange: AnimationChangeHandler
 ) => {
-    const { next, repeat, sprites } = options;
+    let { repeat } = config;
+    const { next, sprites } = config;
     const animationLength = sprites.length;
     const newIndex = (index + 1) % animationLength;
     const isLastSprite = newIndex === animationLength - 1;
 
-    if (isLastSprite) {
-        if (next) {
-            onChange({ index: newIndex, sprites });
-            setTimeout(() => playAnimation(next, delay, onChange), delay);
-            return;
-        }
+    if (!isLastSprite || repeat === -1) {
+        const timeoutId = setTimeout(
+            () => iterateAnimation(newIndex, config, delay, onChange),
+            delay
+        );
 
-        if (!repeat) {
-            return;
-        }
+        onChange({ index, timeoutId, sprites });
+        return;
     }
 
-    const timeoutId = setTimeout(
-        () => iterateAnimation(newIndex, options, delay, onChange),
-        delay
-    );
+    if (repeat > 1) {
+        repeat -= 1;
 
-    onChange({ index: newIndex, timeoutId, sprites });
+        const timeoutId = setTimeout(
+            () =>
+                iterateAnimation(
+                    newIndex,
+                    { ...config, repeat },
+                    delay,
+                    onChange
+                ),
+            delay
+        );
+
+        onChange({ index, timeoutId, sprites });
+        return;
+    }
+
+    if (next) {
+        onChange({ index, sprites });
+        setTimeout(() => playAnimation(next, delay, onChange), delay);
+        return;
+    }
 };
 
 const playAnimation = (
-    options: AnimationOptions,
+    config: AnimationConfig,
     delay: number,
     onChange: AnimationChangeHandler,
     timeoutId?: NodeJS.Timer
@@ -56,19 +91,14 @@ const playAnimation = (
         clearTimeout(timeoutId);
     }
 
-    iterateAnimation(0, options, delay, onChange);
-};
+    const { repeat } = config;
 
-type AnimationOptions = {
-    sprites: Sprites;
-    repeat?: number;
-    next?: AnimationOptions;
-};
+    const animationConfig =
+        repeat === undefined
+            ? { ...config, repeat: 1 }
+            : (config as AnimationIterationConfig);
 
-type AnimationConfig = {
-    delay: number;
-    onSpriteChange?: (sprite: string) => void;
-    options: AnimationOptions;
+    iterateAnimation(0, animationConfig, delay, onChange);
 };
 
 const useAnimation = () => {
@@ -79,20 +109,20 @@ const useAnimation = () => {
         stateRef.current = state;
     }, [state]);
 
-    const animate = useCallback(
-        ({ delay, onSpriteChange, options }: AnimationConfig) => {
-            playAnimation(
-                options,
-                delay,
-                (payload) => {
-                    setState(payload);
-                    onSpriteChange?.(payload.sprites[payload.index] as string);
-                },
-                stateRef.current.timeoutId
-            );
-        },
-        []
-    );
+    const animate = useCallback((params: AnimationParams) => {
+        const { delay, onSpriteChange, config } = params;
+
+        playAnimation(
+            config,
+            delay,
+            (payload) => {
+                console.log(payload.index);
+                setState(payload);
+                onSpriteChange?.(payload.sprites[payload.index] as string);
+            },
+            stateRef.current.timeoutId
+        );
+    }, []);
 
     return animate;
 };
