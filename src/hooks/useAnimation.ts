@@ -1,31 +1,33 @@
-import { useCallback, useEffect, useState, useRef } from "react";
+import { useCallback, useRef } from "react";
 
 import { Sprites } from "../utils";
 
-type AnimationConfig = {
-    sprites: Sprites;
+export type AnimationConfig<T> = {
+    sprites: Sprites<T>;
     /**
      * Animation repeat count. Should be a positive integer or -1 (infinite repeat), default value is 1
      */
     repeat?: number;
-    next?: AnimationConfig;
+    next?: AnimationConfig<T>;
 };
 
-type AnimationIterationConfig = AnimationConfig & {
+type AnimationIterationConfig<T> = AnimationConfig<T> & {
     repeat: number;
 };
 
-type AnimationParams = {
+export type AnimationParams<T> = {
     delay: number;
     onSpriteChange?: (sprite: string) => void;
-    config: AnimationConfig;
+    config: AnimationConfig<T>;
 };
 
-type AnimationChangeHandler = (payload: {
+export type AnimationChangeHandler<T> = (payload: {
     index: number;
-    sprites: Sprites;
+    sprites: Sprites<T>;
     timeoutId?: NodeJS.Timer;
 }) => void;
+
+export type AnimationFunction<T> = (params: AnimationParams<T>) => void;
 
 type AnimationState = {
     index: number;
@@ -34,17 +36,18 @@ type AnimationState = {
 
 const initialState: AnimationState = { index: 0 };
 
-const iterateAnimation = (
+const iterateAnimation = <T>(
     index: number,
-    config: AnimationIterationConfig,
+    config: AnimationIterationConfig<T>,
     delay: number,
-    onChange: AnimationChangeHandler
+    onChange: AnimationChangeHandler<T>
 ) => {
     let { repeat } = config;
     const { next, sprites } = config;
+
     const animationLength = sprites.length;
+    const isLastSprite = index === animationLength - 1;
     const newIndex = (index + 1) % animationLength;
-    const isLastSprite = newIndex === animationLength - 1;
 
     if (!isLastSprite || repeat === -1) {
         const timeoutId = setTimeout(
@@ -75,16 +78,16 @@ const iterateAnimation = (
     }
 
     if (next) {
-        onChange({ index, sprites });
         setTimeout(() => playAnimation(next, delay, onChange), delay);
-        return;
     }
+
+    onChange({ index, sprites });
 };
 
-const playAnimation = (
-    config: AnimationConfig,
+const playAnimation = <T>(
+    config: AnimationConfig<T>,
     delay: number,
-    onChange: AnimationChangeHandler,
+    onChange: AnimationChangeHandler<T>,
     timeoutId?: NodeJS.Timer
 ) => {
     if (timeoutId) {
@@ -96,33 +99,30 @@ const playAnimation = (
     const animationConfig =
         repeat === undefined
             ? { ...config, repeat: 1 }
-            : (config as AnimationIterationConfig);
+            : (config as AnimationIterationConfig<T>);
 
     iterateAnimation(0, animationConfig, delay, onChange);
 };
 
-const useAnimation = () => {
-    const [state, setState] = useState<AnimationState>(initialState);
-    const stateRef = useRef<AnimationState>(state);
+const useAnimation = <T>() => {
+    const stateRef = useRef<AnimationState>(initialState);
 
-    useEffect(() => {
-        stateRef.current = state;
-    }, [state]);
+    const animate: AnimationFunction<T> = useCallback(
+        (params: AnimationParams<T>) => {
+            const { delay, onSpriteChange, config } = params;
 
-    const animate = useCallback((params: AnimationParams) => {
-        const { delay, onSpriteChange, config } = params;
-
-        playAnimation(
-            config,
-            delay,
-            (payload) => {
-                console.log(payload.index);
-                setState(payload);
-                onSpriteChange?.(payload.sprites[payload.index] as string);
-            },
-            stateRef.current.timeoutId
-        );
-    }, []);
+            playAnimation(
+                config,
+                delay,
+                (payload) => {
+                    stateRef.current = payload;
+                    onSpriteChange?.(payload.sprites[payload.index] as string);
+                },
+                stateRef.current.timeoutId
+            );
+        },
+        []
+    );
 
     return animate;
 };
