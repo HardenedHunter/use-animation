@@ -41,7 +41,7 @@ type AnimationState = {
 };
 
 export type AnimationActions<T> = {
-    play: AnimationFunction<T>;
+    animate: AnimationFunction<T>;
     pause: VoidFunction;
     resume: VoidFunction;
 };
@@ -115,7 +115,7 @@ const playAnimation = <T>(
 const useAnimation = <T>(): AnimationActions<T> => {
     const stateRef = useRef<AnimationState>(initialState);
 
-    const play: AnimationFunction<T> = useCallback(
+    const animate: AnimationFunction<T> = useCallback(
         (params: AnimationParams<T>) => {
             const { delay, onSpriteChange, config } = params;
 
@@ -148,7 +148,7 @@ const useAnimation = <T>(): AnimationActions<T> => {
         }
     }, []);
 
-    return { play, pause, resume };
+    return { animate, pause, resume };
 };
 
 export default useAnimation;
