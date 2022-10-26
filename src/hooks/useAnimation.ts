@@ -42,8 +42,7 @@ const iterateAnimation = <T>(
     delay: number,
     onChange: AnimationChangeHandler<T>
 ) => {
-    let { repeat } = config;
-    const { next, sprites } = config;
+    const { next, repeat, sprites } = config;
 
     const animationLength = sprites.length;
     const isLastSprite = index === animationLength - 1;
@@ -60,13 +59,11 @@ const iterateAnimation = <T>(
     }
 
     if (repeat > 1) {
-        repeat -= 1;
-
         const timeoutId = setTimeout(
             () =>
                 iterateAnimation(
                     newIndex,
-                    { ...config, repeat },
+                    { ...config, repeat: repeat - 1 },
                     delay,
                     onChange
                 ),
