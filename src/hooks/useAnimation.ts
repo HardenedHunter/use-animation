@@ -1,6 +1,6 @@
 import { useCallback, useRef } from "react";
 
-import { Sprites } from "../utils";
+export type Sprites<T> = [T, ...T[]];
 
 export type AnimationConfig<T> = {
     sprites: Sprites<T>;

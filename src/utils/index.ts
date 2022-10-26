@@ -1,4 +1,4 @@
-export type Sprites<T> = [T, ...T[]];
+import { Sprites } from "../hooks/useAnimation";
 
 const buildSpriteArray = <T>(start: number, end: number): Sprites<T> => {
     const result = [];
