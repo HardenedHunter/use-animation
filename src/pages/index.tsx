@@ -32,7 +32,7 @@ const Inner: FC<InnerProps> = ({ animate, pause, resume }) => {
     return (
         <main className="flex min-h-screen flex-col items-center justify-center bg-green-200">
             <div className="grid w-full max-w-2xl grid-cols-battle">
-                <div className="relative aspect-square">
+                <div className="relative aspect-square h-full w-full">
                     <Image
                         src={`/images/${sprite}`}
                         fill
